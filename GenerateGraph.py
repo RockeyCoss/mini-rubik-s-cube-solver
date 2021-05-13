@@ -3,6 +3,7 @@ import numpy as np
 
 
 def rankPermutation(p: np.ndarray):
+    p=p.copy()
     pM1 = p.argsort()
     rankResult = 0
     for index in range(p.shape[0] - 1, 0, -1):
@@ -101,6 +102,35 @@ def getPreList():
 
     finally:
         return previousList
+
+def solveByGraph(cube:[np.ndarray,np.ndarray])->None:
+    preList=getPreList()
+    solvedCubeNum=encodeCube(np.arange(7),np.zeros(7))
+    currentCubeNum = encodeCube(*cube)
+    # print(decodeCube(currentCubeNum))
+    while currentCubeNum!=solvedCubeNum:
+        possibleNextCubeNum=[encodeCube(*move(cube,movement)) for movement in moveTable.values()]
+        currentCubeNum=preList[currentCubeNum]
+        moveIndex=possibleNextCubeNum.index(currentCubeNum)
+        print(f"{list(moveTable.keys())[moveIndex] }")
+        cube=decodeCube(currentCubeNum)
+
+# def solveByID(cube:[np.ndarray,np.ndarray])->None:
+#     for depth in range(11):
+#         currentD=0
+#         moveList=[]
+#         lastMovement=None
+#         for movement in moveTable.values():
+#             if movement!=lastMovement:
+
+
+# def dfs(cube:[np.ndarray,np.ndarray],lastMovement,moveList,depth,maxDepth):
+#     if cube[0]==np.arange(7) and cube[1]==np.zeros(7,dtype=cube[1].dtype):
+#         return moveList
+#     for moveName in moveTable:
+#         if moveTable[moveName] != lastMovement:
+#             newCube=move(cube,moveTable[moveName])
+#             moveList.append(moveName)
 
 if __name__ == '__main__':
     a=getPreList()
