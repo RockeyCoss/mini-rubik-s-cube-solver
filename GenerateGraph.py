@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import namedtuple,deque
 import numpy as np
 
 
@@ -17,7 +17,7 @@ def unrankPermutation(r: int, n: int) -> np.ndarray:
     p = np.array(list(range(n)))
     while n > 0:
         factorial = np.math.factorial(n - 1)
-        s = r // factorial
+        s = int(r // factorial)
         p[n - 1], p[s] = p[s], p[n - 1]
         n -= 1
         r %= factorial
@@ -26,7 +26,7 @@ def unrankPermutation(r: int, n: int) -> np.ndarray:
 
 def encodeCube(pie: np.ndarray, q: np.ndarray) -> int:
     perNum = rankPermutation(pie)
-    return perNum ** np.power(3, 6) + np.sum(q[:6] * np.array([np.power(3, i) for i in range(5, -1, -1)]))
+    return int(perNum * np.power(3, 6) + np.sum(q[:6] * np.array([np.power(3, i) for i in range(5, -1, -1)])))
 
 
 def decodeCube(cubeNum: int) -> (np.ndarray, np.ndarray):
@@ -42,7 +42,7 @@ def decodeCube(cubeNum: int) -> (np.ndarray, np.ndarray):
     # sum(orientation)=k
     # (3-k%3)%3=(3%3-k%3)%3=(-k%3)%3=(-1%3*k%3)%3=(2*k%3)%3
     orientation.append((2*(sum(orientation) % 3)) % 3)
-    return permutation,np.array(orientation)
+    return permutation,np.array(orientation,dtype=int)
 
 
 MoveItem = namedtuple("MoveItem", ["permutation", "orientation"])
@@ -50,7 +50,7 @@ moveTable = {
     # U
     'u': MoveItem(permutation=np.array([0, 1, 2, 6, 3, 4, 5]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
     # U'
-    "u'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 4]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    "u'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 3]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
     # R
     "r": MoveItem(permutation=np.array([4, 0, 2, 3, 5, 1, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
     # R'
@@ -61,6 +61,46 @@ moveTable = {
     "f'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
 }
 
-for k in range(10 - 1, 0, -1):
-    print(k)
+def move(cube:[np.ndarray,np.ndarray],movement:MoveItem)->[np.ndarray,np.ndarray]:
+    newPermutation=cube[0][movement.permutation]
+    newOrientation=np.mod((cube[1][movement.permutation]+movement.orientation),3)
+    return [newPermutation,newOrientation]
 
+def generateGraph():
+    totleNum=np.math.factorial(7)*np.power(3,6)
+    graph=[]
+    for cubeNum in range(totleNum):
+        cube=decodeCube(cubeNum)
+        childrenList=tuple(encodeCube(*move(cube,movement)) for movement in moveTable.values())
+        graph.append(childrenList)
+    return graph
+
+def bfs(graph:np.ndarray,startPoint:int)->np.ndarray:
+    previousPoint=-1*np.ones(len(graph),dtype=int)
+    array=deque([startPoint])
+    while array:
+        vertex=array.popleft()
+        for nextState in graph[vertex]:
+            if previousPoint[nextState]==-1:
+                previousPoint[nextState]=vertex
+                array.append(nextState)
+
+    return previousPoint
+
+def generatePreList():
+    graph=generateGraph()
+    resolvedCubeNum=encodeCube(np.arange(7),np.zeros(7))
+    return bfs(graph,resolvedCubeNum)
+
+def getPreList():
+    try:
+        previousList=np.load("previousList.npy")
+    except:
+        previousList=generatePreList()
+        np.save("previousList.npy",previousList)
+
+    finally:
+        return previousList
+
+if __name__ == '__main__':
+    a=getPreList()
