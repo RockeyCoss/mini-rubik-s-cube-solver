@@ -49,17 +49,17 @@ def decodeCube(cubeNum: int) -> (np.ndarray, np.ndarray):
 MoveItem = namedtuple("MoveItem", ["permutation", "orientation"])
 moveTable = {
     # U
-    'u': MoveItem(permutation=np.array([0, 1, 2, 6, 3, 4, 5]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    'U': MoveItem(permutation=np.array([0, 1, 2, 6, 3, 4, 5]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
     # U'
-    "u'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 3]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    "U'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 3]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
     # R
-    "r": MoveItem(permutation=np.array([4, 0, 2, 3, 5, 1, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
+    "R": MoveItem(permutation=np.array([4, 0, 2, 3, 5, 1, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
     # R'
-    "r'": MoveItem(permutation=np.array([1, 5, 2, 3, 0, 4, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
+    "R'": MoveItem(permutation=np.array([1, 5, 2, 3, 0, 4, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
     # F
-    "f": MoveItem(permutation=np.array([0, 5, 1, 3, 4, 6, 2]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
+    "F": MoveItem(permutation=np.array([0, 5, 1, 3, 4, 6, 2]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
     # F'
-    "f'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
+    "F'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
 }
 
 def move(cube:[np.ndarray,np.ndarray],movement:MoveItem)->[np.ndarray,np.ndarray]:
@@ -107,13 +107,15 @@ def solveByGraph(cube:[np.ndarray,np.ndarray])->None:
     preList=getPreList()
     solvedCubeNum=encodeCube(np.arange(7),np.zeros(7))
     currentCubeNum = encodeCube(*cube)
-    # print(decodeCube(currentCubeNum))
+    solveStep=[]
+    moveTableKeys=list(moveTable.keys())
     while currentCubeNum!=solvedCubeNum:
         possibleNextCubeNum=[encodeCube(*move(cube,movement)) for movement in moveTable.values()]
         currentCubeNum=preList[currentCubeNum]
         moveIndex=possibleNextCubeNum.index(currentCubeNum)
-        print(f"{list(moveTable.keys())[moveIndex] }")
+        solveStep.append(moveTableKeys[moveIndex])
         cube=decodeCube(currentCubeNum)
+    return solveStep
 
 # def solveByID(cube:[np.ndarray,np.ndarray])->None:
 #     for depth in range(11):
