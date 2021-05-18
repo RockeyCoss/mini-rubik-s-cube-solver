@@ -42,10 +42,12 @@ def updateCubeState(axis,angle):
     whitePos=[abs(i) for i in positionBlock["white"].pos.value]
     orangePos=[abs(i) for i in positionBlock["orange"].pos.value]
     whiteDirection=[0]*3
-    whiteDirection[whitePos.index(max(whitePos))]=1
+    whiteIndex=whitePos.index(max(whitePos))
+    yellowIndex=orangePos.index(max(orangePos))
+    whiteDirection[whiteIndex]=positionBlock["white"].pos.value[whiteIndex]
     whiteDirection=vp.vector(*whiteDirection)
     orangeDirection=[0]*3
-    orangeDirection[orangePos.index(max(orangePos))]=1
+    orangeDirection[yellowIndex]=positionBlock["orange"].pos.value[yellowIndex]
     orangeDirection=vp.vector(*orangeDirection)
 
     movement=None
@@ -134,7 +136,8 @@ def solveByGraphButton(b):
             angle = vp.pi / 2
             positionValue = [abs(i) for i in whitePos.value]
             pointingVec = [0] * 3
-            pointingVec[positionValue.index(max(positionValue))] = 1
+            index=positionValue.index(max(positionValue))
+            pointingVec[index] = whitePos.value[index]
             pointingVec = vp.vector(*pointingVec)
             axis = vp.cross(pointingVec, vp.vector(0, -1, 0))
             angleFrame = angle / fps
@@ -158,7 +161,8 @@ def solveByGraphButton(b):
             angle = vp.pi / 2
             positionValue = [abs(i) for i in orangePos.value]
             pointingVec = [0] * 3
-            pointingVec[positionValue.index(max(positionValue))] = 1
+            index=positionValue.index(max(positionValue))
+            pointingVec[index] = orangePos.value[index]
             pointingVec = vp.vector(*pointingVec)
             axis = vp.cross(pointingVec, vp.vector(-1, 0, 0))
             angleFrame = angle / fps
