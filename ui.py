@@ -1,12 +1,12 @@
 import vpython as vp
 import numpy as np
-from GenerateGraph import MoveItem
-import GenerateGraph
-import time
+from RubiksCubeSolver import MoveItem
+import RubiksCubeSolver
 
 vp.scene.width = 700
 vp.scene.height = 700
 positionBlock = {}
+moveButtonList=[]
 faces = {
     'red': (vp.color.red, (1, 0, 0)),
     'blue': (vp.color.blue, (0, 0, 1)),
@@ -81,14 +81,16 @@ def updateCubeState(axis,angle):
             movement="D'"
         else:
             movement="D"
-    cube = GenerateGraph.move(cube, moveTable[movement])
+    cube = RubiksCubeSolver.move(cube, moveTable[movement])
 
 
 
 
 def rotateAnimationFactory(operation, fps=24):
     def rotateAnimation(b):
-        global cube, squares, operations
+        global cube, squares, operations,moveButtonList
+        for button in moveButtonList:
+            button.disabled=True
         angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
         axis = vp.vector(operations[operation])
         origin = vp.vector(0, 0, 0)
@@ -99,6 +101,8 @@ def rotateAnimationFactory(operation, fps=24):
             for square in squares:
                 if vp.dot(square.pos, axis) >= 0:
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
+        for button in moveButtonList:
+            button.disabled=False
     return rotateAnimation
 
 
@@ -113,11 +117,13 @@ def rotateCubeAnimation(operation, fps=24):
         for square in squares:
             if vp.dot(square.pos, axis) >= 0:
                 square.rotate(angle=angleFrame, axis=axis, origin=origin)
-    cube = GenerateGraph.move(cube, moveTable[operation])
+    cube = RubiksCubeSolver.move(cube, moveTable[operation])
 
 
 def solveByGraphButton(b):
-    global cube, positionBlock, squares
+    global cube, positionBlock, squares,moveButtonList
+    for button in moveButtonList:
+        button.disabled=True
     whitePos: vp.vector = positionBlock["white"].pos
     orangePos: vp.vector = positionBlock["orange"].pos
     fps=24
@@ -173,9 +179,12 @@ def solveByGraphButton(b):
 
     # solve
     currentCube = cube.copy()
-    solveSteps = GenerateGraph.solveByGraph(currentCube)
+    solveSteps = RubiksCubeSolver.solveByGraph(currentCube)
     for step in solveSteps:
         rotateCubeAnimation(step)
+
+    for button in moveButtonList:
+        button.disabled=False
 
 
 if __name__ == '__main__':
@@ -200,9 +209,11 @@ if __name__ == '__main__':
 
     for operation in operations:
         fps = 24
-        vp.button(text=f" {operation} ", pos=vp.scene.caption_anchor, bind=rotateAnimationFactory(operation, fps))
+        button=vp.button(text=f" {operation} ", pos=vp.scene.caption_anchor, bind=rotateAnimationFactory(operation, fps))
+        moveButtonList.append(button)
         vp.scene.append_to_caption("   ")
     vp.scene.append_to_caption("\n\n")
     vp.scene.append_to_caption("            ")
 
-    vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
+    button=vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
+    moveButtonList.append(button)

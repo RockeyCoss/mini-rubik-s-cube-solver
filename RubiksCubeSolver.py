@@ -103,7 +103,7 @@ def getPreList():
     finally:
         return previousList
 
-def solveByGraph(cube:[np.ndarray,np.ndarray])->None:
+def solveByGraph(cube:[np.ndarray,np.ndarray])->list:
     preList=getPreList()
     solvedCubeNum=encodeCube(np.arange(7),np.zeros(7))
     currentCubeNum = encodeCube(*cube)
@@ -117,22 +117,7 @@ def solveByGraph(cube:[np.ndarray,np.ndarray])->None:
         cube=decodeCube(currentCubeNum)
     return solveStep
 
-# def solveByID(cube:[np.ndarray,np.ndarray])->None:
-#     for depth in range(11):
-#         currentD=0
-#         moveList=[]
-#         lastMovement=None
-#         for movement in moveTable.values():
-#             if movement!=lastMovement:
 
-
-# def dfs(cube:[np.ndarray,np.ndarray],lastMovement,moveList,depth,maxDepth):
-#     if cube[0]==np.arange(7) and cube[1]==np.zeros(7,dtype=cube[1].dtype):
-#         return moveList
-#     for moveName in moveTable:
-#         if moveTable[moveName] != lastMovement:
-#             newCube=move(cube,moveTable[moveName])
-#             moveList.append(moveName)
 
 if __name__ == '__main__':
     a=getPreList()
