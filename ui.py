@@ -1,7 +1,8 @@
 import vpython as vp
 import numpy as np
-from RubiksCubeSolver import MoveItem
-import RubiksCubeSolver
+from utility import MoveItem
+import utility
+import GraphSolver
 
 vp.scene.width = 700
 vp.scene.height = 700
@@ -81,7 +82,7 @@ def updateCubeState(axis,angle):
             movement="D'"
         else:
             movement="D"
-    cube = RubiksCubeSolver.move(cube, moveTable[movement])
+    cube = utility.move(cube, moveTable[movement])
 
 
 
@@ -117,7 +118,7 @@ def rotateCubeAnimation(operation, fps=24):
         for square in squares:
             if vp.dot(square.pos, axis) >= 0:
                 square.rotate(angle=angleFrame, axis=axis, origin=origin)
-    cube = RubiksCubeSolver.move(cube, moveTable[operation])
+    cube = utility.move(cube, moveTable[operation])
 
 
 def solveByGraphButton(b):
@@ -179,7 +180,7 @@ def solveByGraphButton(b):
 
     # solve
     currentCube = cube.copy()
-    solveSteps = RubiksCubeSolver.solveByGraph(currentCube)
+    solveSteps = GraphSolver.solve(currentCube)
     for step in solveSteps:
         rotateCubeAnimation(step)
 
@@ -197,7 +198,6 @@ if __name__ == '__main__':
                 cosine = vp.dot(vp.vector(0, 0, 1), vp.vector(*normalVector))
                 axis = (vp.cross(vp.vector(0, 0, 1), vp.vector(*normalVector))
                         if cosine == 0 else vp.vector(1, 0, 0))
-                kk = vp.acos(cosine) * 2
                 square.rotate(angle=vp.acos(cosine), origin=vp.vector(0, 0, 0), axis=axis)
                 squares.append(square)
                 if color == vp.color.white and x == -0.5 and y == -0.5:
