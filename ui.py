@@ -1,5 +1,7 @@
 import vpython as vp
 import numpy as np
+
+import GroupSolver
 from utility import MoveItem
 import utility
 import GraphSolver
@@ -7,7 +9,7 @@ import GraphSolver
 vp.scene.width = 700
 vp.scene.height = 700
 positionBlock = {}
-moveButtonList=[]
+moveButtonList = []
 cube = utility.CubeState([np.arange(7), np.zeros(7, dtype=int)])
 faces = {
     'red': (vp.color.red, (1, 0, 0)),
@@ -22,7 +24,8 @@ operations = {"R": vp.vector(1, 0, 0), "R'": vp.vector(1, 0, 0),
               "F": vp.vector(0, 0, 1), "F'": vp.vector(0, 0, 1),
               "D": vp.vector(0, -1, 0), "D'": vp.vector(0, -1, 0),
               "L": vp.vector(-1, 0, 0), "L'": vp.vector(-1, 0, 0),
-              "B": vp.vector(0, 0, -1), "B'": vp.vector(0, 0, -1)}
+              "B": vp.vector(0, 0, -1), "B'": vp.vector(0, 0, -1),
+              "R2": vp.vector(1, 0, 0), "F2": vp.vector(0, 0, 1)}
 moveTable = {
     'U': MoveItem(permutation=np.array([0, 1, 2, 6, 3, 4, 5]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
     "U'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 3]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
@@ -37,62 +40,64 @@ moveTable = {
     "L'": MoveItem(permutation=np.array([1, 5, 2, 3, 0, 4, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
     "B": MoveItem(permutation=np.array([0, 5, 1, 3, 4, 6, 2]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
     "B'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
+
+    "R2": MoveItem(permutation=np.array([5, 4, 2, 3, 1, 0, 6]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    "F2": MoveItem(permutation=np.array([0, 6, 5, 3, 4, 2, 1]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
 }
 
-def updateCubeState(axis,angle):
-    global cube,positionBlock,moveTable
-    whitePos=[abs(i) for i in positionBlock["white"].pos.value]
-    orangePos=[abs(i) for i in positionBlock["orange"].pos.value]
-    whiteDirection=[0]*3
-    whiteIndex=whitePos.index(max(whitePos))
-    yellowIndex=orangePos.index(max(orangePos))
-    whiteDirection[whiteIndex]=positionBlock["white"].pos.value[whiteIndex]
-    whiteDirection=vp.vector(*whiteDirection)
-    orangeDirection=[0]*3
-    orangeDirection[yellowIndex]=positionBlock["orange"].pos.value[yellowIndex]
-    orangeDirection=vp.vector(*orangeDirection)
 
-    movement=None
-    judge180=lambda pos,axis:vp.dot(pos,axis)<-0.9
-    judge90=lambda pos,axis:vp.fabs(vp.dot(pos,axis))<0.1
-    judge0=lambda pos,axis:vp.dot(pos,axis)>0.9
+def updateCubeState(axis, angle):
+    global cube, positionBlock, moveTable
+    whitePos = [abs(i) for i in positionBlock["white"].pos.value]
+    orangePos = [abs(i) for i in positionBlock["orange"].pos.value]
+    whiteDirection = [0] * 3
+    whiteIndex = whitePos.index(max(whitePos))
+    yellowIndex = orangePos.index(max(orangePos))
+    whiteDirection[whiteIndex] = positionBlock["white"].pos.value[whiteIndex]
+    whiteDirection = vp.vector(*whiteDirection)
+    orangeDirection = [0] * 3
+    orangeDirection[yellowIndex] = positionBlock["orange"].pos.value[yellowIndex]
+    orangeDirection = vp.vector(*orangeDirection)
 
-    if judge90(whiteDirection,axis) and judge90(orangeDirection,axis):
+    movement = None
+    judge180 = lambda pos, axis: vp.dot(pos, axis) < -0.9
+    judge90 = lambda pos, axis: vp.fabs(vp.dot(pos, axis)) < 0.1
+    judge0 = lambda pos, axis: vp.dot(pos, axis) > 0.9
+
+    if judge90(whiteDirection, axis) and judge90(orangeDirection, axis):
         # F or B
-        if angle==vp.pi/2:
-            movement="F'"
+        if angle == vp.pi / 2:
+            movement = "F'"
         else:
-            movement="F"
-    elif judge90(whiteDirection,axis) and judge180(orangeDirection,axis):
-        if angle==vp.pi/2:
-            movement="R'"
+            movement = "F"
+    elif judge90(whiteDirection, axis) and judge180(orangeDirection, axis):
+        if angle == vp.pi / 2:
+            movement = "R'"
         else:
-            movement="R"
-    elif judge180(whiteDirection,axis) and judge90(orangeDirection,axis):
-        if angle==vp.pi/2:
-            movement="U'"
+            movement = "R"
+    elif judge180(whiteDirection, axis) and judge90(orangeDirection, axis):
+        if angle == vp.pi / 2:
+            movement = "U'"
         else:
-            movement="U"
-    elif judge90(whiteDirection,axis) and judge0(orangeDirection,axis):
-        if angle==vp.pi/2:
-            movement="L'"
+            movement = "U"
+    elif judge90(whiteDirection, axis) and judge0(orangeDirection, axis):
+        if angle == vp.pi / 2:
+            movement = "L'"
         else:
-            movement="L"
-    elif judge0(whiteDirection,axis) and judge90(orangeDirection,axis):
-        if angle==vp.pi/2:
-            movement="D'"
+            movement = "L"
+    elif judge0(whiteDirection, axis) and judge90(orangeDirection, axis):
+        if angle == vp.pi / 2:
+            movement = "D'"
         else:
-            movement="D"
+            movement = "D"
     cube = utility.move(cube, moveTable[movement])
-
-
 
 
 def rotateAnimationFactory(operation, fps=24):
     def rotateAnimation(b):
-        global cube, squares, operations,moveButtonList
+        global cube, squares, operations, moveButtonList
         for button in moveButtonList:
-            button.disabled=True
+            button.disabled = True
         angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
         axis = vp.vector(operations[operation])
         origin = vp.vector(0, 0, 0)
@@ -104,13 +109,14 @@ def rotateAnimationFactory(operation, fps=24):
                 if vp.dot(square.pos, axis) >= 0:
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
         for button in moveButtonList:
-            button.disabled=False
+            button.disabled = False
+
     return rotateAnimation
 
 
 def rotateCubeAnimation(operation, fps=24):
     global cube, squares, operations
-    angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
+    angle = vp.pi if '2' in operation else vp.pi / 2 if "'" in operation else -vp.pi / 2
     axis = vp.vector(operations[operation])
     origin = vp.vector(0, 0, 0)
     angleFrame = angle / fps
@@ -122,13 +128,10 @@ def rotateCubeAnimation(operation, fps=24):
     cube = utility.move(cube, moveTable[operation])
 
 
-def solveByGraphButton(b):
-    global cube, positionBlock, squares,moveButtonList
-    for button in moveButtonList:
-        button.disabled=True
+def regularizeRubiksCube():
     whitePos: vp.vector = positionBlock["white"].pos
     orangePos: vp.vector = positionBlock["orange"].pos
-    fps=24
+    fps = 24
     # make positionBlock's white square facing down
     if whitePos.y >= -0.9:
         origin = vp.vector(0, 0, 0)
@@ -144,7 +147,7 @@ def solveByGraphButton(b):
             angle = vp.pi / 2
             positionValue = [abs(i) for i in whitePos.value]
             pointingVec = [0] * 3
-            index=positionValue.index(max(positionValue))
+            index = positionValue.index(max(positionValue))
             pointingVec[index] = whitePos.value[index]
             pointingVec = vp.vector(*pointingVec)
             axis = vp.cross(pointingVec, vp.vector(0, -1, 0))
@@ -169,7 +172,7 @@ def solveByGraphButton(b):
             angle = vp.pi / 2
             positionValue = [abs(i) for i in orangePos.value]
             pointingVec = [0] * 3
-            index=positionValue.index(max(positionValue))
+            index = positionValue.index(max(positionValue))
             pointingVec[index] = orangePos.value[index]
             pointingVec = vp.vector(*pointingVec)
             axis = vp.cross(pointingVec, vp.vector(-1, 0, 0))
@@ -179,6 +182,13 @@ def solveByGraphButton(b):
                 for square in squares:
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
 
+
+def solveByGraphButton(b):
+    global cube, positionBlock, squares, moveButtonList
+    for button in moveButtonList:
+        button.disabled = True
+
+    regularizeRubiksCube()
     # solve
     currentCube = cube.__copy__()
     solveSteps = GraphSolver.solve(currentCube)
@@ -186,8 +196,22 @@ def solveByGraphButton(b):
         rotateCubeAnimation(step)
 
     for button in moveButtonList:
-        button.disabled=False
+        button.disabled = False
 
+def solveByGroupButton(b):
+    global cube, positionBlock, squares, moveButtonList
+    for button in moveButtonList:
+        button.disabled = True
+
+    regularizeRubiksCube()
+    # solve
+    currentCube = cube.__copy__()
+    solveSteps = GroupSolver.solve(currentCube)
+    for step in solveSteps:
+        rotateCubeAnimation(step)
+
+    for button in moveButtonList:
+        button.disabled = False
 
 if __name__ == '__main__':
 
@@ -209,12 +233,19 @@ if __name__ == '__main__':
         vp.scene.lights.append(vp.distant_light(direction=vp.vector(*normalVector), color=vp.color.gray(0.3)))
 
     for operation in operations:
+        if operation=="R2" or operation=="F2":
+            continue
         fps = 24
-        button=vp.button(text=f" {operation} ", pos=vp.scene.caption_anchor, bind=rotateAnimationFactory(operation, fps))
+        button = vp.button(text=f" {operation} ", pos=vp.scene.caption_anchor,
+                           bind=rotateAnimationFactory(operation, fps))
         moveButtonList.append(button)
         vp.scene.append_to_caption("   ")
+
     vp.scene.append_to_caption("\n\n")
     vp.scene.append_to_caption("            ")
 
-    button=vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
+    button = vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
+    moveButtonList.append(button)
+    vp.scene.append_to_caption("     ")
+    button = vp.button(text=f"IDA*算法求解", pos=vp.scene.caption_anchor, bind=solveByGroupButton)
     moveButtonList.append(button)
