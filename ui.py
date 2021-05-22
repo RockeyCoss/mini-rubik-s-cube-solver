@@ -1,7 +1,8 @@
 import vpython as vp
 import numpy as np
 
-import GroupSolver
+import IDAStar2Phase
+import IDAStarSolver
 from utility import MoveItem
 import utility
 import GraphSolver
@@ -10,6 +11,7 @@ vp.scene.width = 700
 vp.scene.height = 700
 positionBlock = {}
 moveButtonList = []
+solveStepSequence=[]
 cube = utility.CubeState([np.arange(7), np.zeros(7, dtype=int)])
 faces = {
     'red': (vp.color.red, (1, 0, 0)),
@@ -25,7 +27,7 @@ operations = {"R": vp.vector(1, 0, 0), "R'": vp.vector(1, 0, 0),
               "D": vp.vector(0, -1, 0), "D'": vp.vector(0, -1, 0),
               "L": vp.vector(-1, 0, 0), "L'": vp.vector(-1, 0, 0),
               "B": vp.vector(0, 0, -1), "B'": vp.vector(0, 0, -1),
-              "R2": vp.vector(1, 0, 0), "F2": vp.vector(0, 0, 1)}
+              }
 moveTable = {
     'U': MoveItem(permutation=np.array([0, 1, 2, 6, 3, 4, 5]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
     "U'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 3]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
@@ -41,9 +43,17 @@ moveTable = {
     "B": MoveItem(permutation=np.array([0, 5, 1, 3, 4, 6, 2]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
     "B'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
 
-    "R2": MoveItem(permutation=np.array([5, 4, 2, 3, 1, 0, 6]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
-    "F2": MoveItem(permutation=np.array([0, 6, 5, 3, 4, 2, 1]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
 }
+
+def disableButton(func):
+    def wrapFunc(*args,**kwargs):
+        for button in moveButtonList:
+            button.disabled = True
+        result=func(*args,**kwargs)
+        for button in moveButtonList:
+            button.disabled = False
+        return result
+    return wrapFunc
 
 
 def updateCubeState(axis, angle):
@@ -94,10 +104,9 @@ def updateCubeState(axis, angle):
 
 
 def rotateAnimationFactory(operation, fps=24):
+    @disableButton
     def rotateAnimation(b):
         global cube, squares, operations, moveButtonList
-        for button in moveButtonList:
-            button.disabled = True
         angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
         axis = vp.vector(operations[operation])
         origin = vp.vector(0, 0, 0)
@@ -108,8 +117,6 @@ def rotateAnimationFactory(operation, fps=24):
             for square in squares:
                 if vp.dot(square.pos, axis) >= 0:
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
-        for button in moveButtonList:
-            button.disabled = False
 
     return rotateAnimation
 
@@ -182,36 +189,57 @@ def regularizeRubiksCube():
                 for square in squares:
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
 
-
+@disableButton
 def solveByGraphButton(b):
     global cube, positionBlock, squares, moveButtonList
-    for button in moveButtonList:
-        button.disabled = True
 
     regularizeRubiksCube()
     # solve
     currentCube = cube.__copy__()
     solveSteps = GraphSolver.solve(currentCube)
+
+    global solveStepSequence
+    solveStepSequence = solveSteps
+
     for step in solveSteps:
         rotateCubeAnimation(step)
 
-    for button in moveButtonList:
-        button.disabled = False
 
-def solveByGroupButton(b):
+@disableButton
+def solveByIDAStar2PhaseButton(b):
     global cube, positionBlock, squares, moveButtonList
-    for button in moveButtonList:
-        button.disabled = True
-
     regularizeRubiksCube()
     # solve
     currentCube = cube.__copy__()
-    solveSteps = GroupSolver.solve(currentCube)
+    solveSteps = IDAStar2Phase.solve(currentCube)
+
+    global solveStepSequence
+    solveStepSequence=solveSteps
+
     for step in solveSteps:
         rotateCubeAnimation(step)
 
-    for button in moveButtonList:
-        button.disabled = False
+
+@disableButton
+def solveByIDAStarButton(b):
+    global cube, positionBlock, squares, moveButtonList
+    regularizeRubiksCube()
+    # solve
+    currentCube = cube.__copy__()
+    solveSteps = IDAStarSolver.solve(currentCube)
+
+    global solveStepSequence
+    solveStepSequence = solveSteps
+
+    for step in solveSteps:
+        rotateCubeAnimation(step)
+
+@disableButton
+def rewindToPostSolve(b):
+    global solveStepSequence
+    for step in reversed(solveStepSequence):
+        rotateCubeAnimation(step,fps=10)
+
 
 if __name__ == '__main__':
 
@@ -233,8 +261,6 @@ if __name__ == '__main__':
         vp.scene.lights.append(vp.distant_light(direction=vp.vector(*normalVector), color=vp.color.gray(0.3)))
 
     for operation in operations:
-        if operation=="R2" or operation=="F2":
-            continue
         fps = 24
         button = vp.button(text=f" {operation} ", pos=vp.scene.caption_anchor,
                            bind=rotateAnimationFactory(operation, fps))
@@ -246,6 +272,17 @@ if __name__ == '__main__':
 
     button = vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
     moveButtonList.append(button)
+
     vp.scene.append_to_caption("     ")
-    button = vp.button(text=f"IDA*算法求解", pos=vp.scene.caption_anchor, bind=solveByGroupButton)
+    button = vp.button(text=f"IDA*2阶段算法求解", pos=vp.scene.caption_anchor, bind=solveByIDAStar2PhaseButton)
     moveButtonList.append(button)
+
+    vp.scene.append_to_caption("     ")
+    button = vp.button(text=f"IDA*算法求解", pos=vp.scene.caption_anchor, bind=solveByIDAStarButton)
+    moveButtonList.append(button)
+
+    vp.scene.append_to_caption("     ")
+    button = vp.button(text=f"回到求解前状态", pos=vp.scene.caption_anchor, bind=rewindToPostSolve)
+    moveButtonList.append(button)
+
+    vp.scene.append_to_caption("\n")

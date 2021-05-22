@@ -1,5 +1,5 @@
 import numpy as np
-from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState
+from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint
 from typing import List, Tuple
 
 # use IDA*
@@ -23,6 +23,12 @@ oppositeOperation = {
     "F'": "F",
     "R2":"R2",
     "F2":"F2"
+}
+insertMapping={
+    "U":["U"],
+    "U'":["U'"],
+    "R2":['R','R'],
+    "F2":['F','F']
 }
 moveTablePhaseTwo = {
     # U
@@ -59,7 +65,7 @@ def isCompletelySolved(currentCube: CubeState) -> bool:
     global solvedState
     return currentCube == solvedState
 
-
+@infoPrint("二阶段IDA*算法")
 def solve(cube: CubeState,phaseOneNum=1) -> List[str]:
     if isCompletelySolved(cube):
         return []
@@ -80,6 +86,7 @@ def solve(cube: CubeState,phaseOneNum=1) -> List[str]:
     if (movementLog == []):
         raise Exception("can't solve the rubik's cube")
     phaseOneLength=len(movementLog)
+
     # phase two
     # from <U,R2,F2> to <I>
     if isCompletelySolved(phaseOneCube):
@@ -87,14 +94,15 @@ def solve(cube: CubeState,phaseOneNum=1) -> List[str]:
     for maxDepth in range(1, 20):
         solved,phaseTwoCube = phaseTwoDps(maxDepth,0,phaseOneCube,movementLog,0)
         if solved:
+            # R R2->R'
             if len(movementLog)>phaseOneLength:
                 if ((movementLog[phaseOneLength-1]=="R" or movementLog[phaseOneLength-1]=="R'") and\
-                    movementLog[phaseOneLength]=="R2") or ((movementLog[phaseOneLength-1]=="F" or movementLog[phaseOneLength-1]=="F'") and \
-                        movementLog[phaseOneLength] == "F2"):
+                    movementLog[phaseOneLength]=="R") or ((movementLog[phaseOneLength-1]=="F" or movementLog[phaseOneLength-1]=="F'") and \
+                        movementLog[phaseOneLength] == "F"):
+                    movementLog.pop(phaseOneLength+1)
                     movementLog.pop(phaseOneLength)
-                    lastMovement=movementLog.pop(phaseOneLength-1)
-                    movementLog.insert(phaseOneLength-1,oppositeOperation[lastMovement])
-
+                    phaseOneLastMovement=movementLog.pop(phaseOneLength-1)
+                    movementLog.insert(phaseOneLength-1,oppositeOperation[phaseOneLastMovement])
             return movementLog
     else:
         raise Exception("can't solve the rubik's cube")
@@ -173,12 +181,14 @@ def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
         if heuristicDis > maxDepth:
             continue
 
-        movementLog.append(movementName)
+        movementLog.extend(insertMapping[movementName])
         judge, newCube = phaseTwoDps(maxDepth, currentDepth + deltaDepth, newCube, movementLog, choseTime)
         if judge:
             return True, newCube
         else:
             movementLog.pop()
+            if movementName=='R2' or movementName=='F2':
+                movementLog.pop()
             continue
 
     return False, cube

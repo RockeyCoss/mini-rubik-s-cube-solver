@@ -2,6 +2,7 @@ from collections import namedtuple
 from typing import List
 import vpython as vp
 import numpy as np
+import time
 
 MoveItemBase = namedtuple("MoveItem", ["permutation", "orientation"])
 CubeStateBase = namedtuple("CubeState", ["blockSequence", "orienSequence"])
@@ -114,3 +115,20 @@ def move(cube: CubeState, movement: MoveItem) -> [np.ndarray, np.ndarray]:
     newPermutation = cube.blockSequence[movement.permutation]
     newOrientation = np.mod((cube.orienSequence[movement.permutation] + movement.orientation), 3)
     return CubeState([newPermutation, newOrientation], copy=False)
+
+def infoPrint(prompt:str):
+    def infoPrint(func):
+        def wrapFunc(*args,**kwargs):
+            start=time.time()
+            result=func(*args,**kwargs)
+            end=time.time()
+            vp.scene.append_to_caption(f"time consumed:{end-start:.5f} ")
+            vp.scene.append_to_caption(prompt+":")
+            for step in result:
+                vp.scene.append_to_caption(step+" ")
+            vp.scene.append_to_caption('\n')
+            return result
+        return wrapFunc
+    return infoPrint
+
+

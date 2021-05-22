@@ -1,6 +1,6 @@
 from collections import namedtuple,deque
 import numpy as np
-from utility import decodeCube, encodeCube, moveTable, move, CubeState
+from utility import decodeCube, encodeCube, moveTable, move, CubeState,  infoPrint
 
 
 def generateGraph():
@@ -39,6 +39,7 @@ def getPreList():
     finally:
         return previousList
 
+@infoPrint("状态图法")
 def solve(cube:CubeState)->list:
     preList=getPreList()
     solvedCubeNum=encodeCube(CubeState([np.arange(7),np.zeros(7)]))
