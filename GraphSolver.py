@@ -41,12 +41,12 @@ def getPreList():
 
 def solve(cube:CubeState)->list:
     preList=getPreList()
-    solvedCubeNum=encodeCube(np.arange(7),np.zeros(7))
-    currentCubeNum = encodeCube(*cube)
+    solvedCubeNum=encodeCube(CubeState([np.arange(7),np.zeros(7)]))
+    currentCubeNum = encodeCube(cube)
     solveStep=[]
     moveTableKeys=list(moveTable.keys())
     while currentCubeNum!=solvedCubeNum:
-        possibleNextCubeNum=[encodeCube(*move(cube,movement)) for movement in moveTable.values()]
+        possibleNextCubeNum=[encodeCube(move(cube,movement)) for movement in moveTable.values()]
         currentCubeNum=preList[currentCubeNum]
         moveIndex=possibleNextCubeNum.index(currentCubeNum)
         solveStep.append(moveTableKeys[moveIndex])

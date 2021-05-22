@@ -1,6 +1,6 @@
 import numpy as np
 from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState
-from typing import List
+from typing import List, Tuple
 
 # use IDA*
 # f(n)=g(n)+h(n)
@@ -14,20 +14,32 @@ manhattanDistance = np.array([
     [2, 1, 2, 2, 1, 0, 1],
     [3, 2, 1, 1, 2, 1, 0],
 ])
-oppositeOperation={
+oppositeOperation = {
     'U': "U",
     "U'": "U",
     "R": "R'",
     "R'": "R",
     "F": "F'",
     "F'": "F",
+    "R2":"R2",
+    "F2":"F2"
+}
+moveTablePhaseTwo = {
+    # U
+    'U': MoveItem(permutation=np.array([0, 1, 2, 6, 3, 4, 5]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    # U'
+    "U'": MoveItem(permutation=np.array([0, 1, 2, 4, 5, 6, 3]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    # R2
+    "R2": MoveItem(permutation=np.array([5, 4, 2, 3, 1, 0, 6]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
+    # F2
+    "F2": MoveItem(permutation=np.array([0, 6, 5, 3, 4, 2, 1]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
 }
 solvedState = CubeState([np.arange(7), np.zeros(7, dtype=int)])
 
 
 # Phase one utility functions
 def isPhaseOneAchieved(currentCube: CubeState) -> bool:
-    return (currentCube.orienSequence==np.zeros(7)).all()
+    return (currentCube.orienSequence == np.zeros(7)).all()
 
 
 def phaseOneH(currentCube: CubeState) -> float:
@@ -37,76 +49,126 @@ def phaseOneH(currentCube: CubeState) -> float:
 
 
 # Phase two utility functions
-def heuristicH(currentCube: CubeState) -> float:
+def phaseTwoH(currentCube: CubeState) -> float:
     # h(n)=max(blocks' 3D manhattan distance, orientation recovery distance)
     permutation, orientation = currentCube
     blockDis = np.sum(manhattanDistance[permutation, np.arange(6)]) / 4
-    orienDis = np.sum(orientation) / 4
-    return np.max(blockDis, orienDis)
+    return blockDis
 
 
 def isCompletelySolved(currentCube: CubeState) -> bool:
     global solvedState
-    return currentCube==solvedState
+    return currentCube == solvedState
 
 
-def solve(cube: CubeState) -> list:
+def solve(cube: CubeState,phaseOneNum=1) -> List[str]:
     if isCompletelySolved(cube):
         return []
 
-    ancesChoice = None
     # record the times of a movement being chose
     choseTime = 0
     # phase one
     # from <R,U,F> to <U,R2,F2>
+
+    # phaseOneSolutionNum=0
+    # phaseOneSolution=[]
+
     for maxDepth in range(1, 20):
-        movementLog=[]
-        phaseOneDps(maxDepth,0,cube,movementLog,0)
+        movementLog = []
+        solved, phaseOneCube = phaseOneDps(maxDepth, 0, cube, movementLog, 0)
+        if solved:
+            break
+    if (movementLog == []):
+        raise Exception("can't solve the rubik's cube")
+
+    # phase two
+    # from <U,R2,F2> to <I>
+    if isCompletelySolved(phaseOneCube):
+        return movementLog
+    for maxDepth in range(1, 20):
+        pass
 
 
-def phaseOneDps(maxDepth: int,currentDepth:int,cube: CubeState,movementLog:List[str],choseTime:int)->bool:
-    global moveTable,oppositeOperation
+def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
+    bool, CubeState]:
+    global moveTable, oppositeOperation
 
     if isPhaseOneAchieved(cube):
-        return True
+        return True, cube
     # exceed max depth, prune
     if currentDepth >= maxDepth:
-        return False
+        return False, cube
 
-    preChoiceOpposite=oppositeOperation[movementLog[-1]] if len(movementLog)>0 else None
+    preChoiceOpposite = oppositeOperation[movementLog[-1]] if len(movementLog) > 0 else None
 
     length = len(movementLog)
     for movementName in moveTable:
-        movement=moveTable[movementName]
+        movement = moveTable[movementName]
         # R R', prune
-        if movementName==preChoiceOpposite:
+        if movementName == preChoiceOpposite:
             continue
-        if length==0 or (length!=0 and movementLog[-1]!=movementName):
-            choseTime=1
+        if length == 0 or (length != 0 and movementLog[-1] != movementName):
+            choseTime = 1
         else:
-            choseTime+=1
+            choseTime += 1
         # R R R = R', prune
-        if choseTime==3:
+        if choseTime == 3:
             continue
-        newCube=move(cube,movement)
+        newCube = move(cube, movement)
         # achieved!
 
-        if currentDepth+phaseOneH(newCube)>maxDepth:
+        if currentDepth + phaseOneH(newCube) > maxDepth:
             continue
 
         movementLog.append(movementName)
-        judge=phaseOneDps(maxDepth,currentDepth+1,newCube,movementLog,choseTime)
+        judge, newCube = phaseOneDps(maxDepth, currentDepth + 1, newCube, movementLog, choseTime)
         if judge:
-            return True
+            return True, newCube
         else:
             movementLog.pop()
             continue
 
-    return False
+    return False, cube
 
 
+def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
+    bool, CubeState]:
+    global moveTable, oppositeOperation
 
+    if isCompletelySolved(cube):
+        return True, cube
+    # exceed max depth, prune
+    if currentDepth >= maxDepth:
+        return False, cube
 
+    preChoiceOpposite = oppositeOperation[movementLog[-1]] if len(movementLog) > 0 else None
 
+    length = len(movementLog)
+    for movementName in moveTablePhaseTwo:
+        deltaDepth=1 if movementName=='U' or movementName=="U'" else 2
+        movement = moveTablePhaseTwo[movementName]
+        # R R', prune
+        if movementName == preChoiceOpposite:
+            continue
+        if length == 0 or (length != 0 and movementLog[-1] != movementName):
+            choseTime = 1
+        else:
+            choseTime += 1
+        # R R R = R', prune
+        if choseTime == 3:
+            continue
+        newCube = move(cube, movement)
+        # achieved!
 
+        if currentDepth + phaseOneH(newCube) > maxDepth:
+            continue
 
+        movementLog.append(movementName)
+        judge, newCube = phaseOneDps(maxDepth, currentDepth + deltaDepth, newCube, movementLog, choseTime)
+        if judge:
+            return True, newCube
+        else:
+            movementLog.pop()
+            continue
+
+    return False, cube
