@@ -4,36 +4,53 @@ import vpython as vp
 import numpy as np
 
 MoveItemBase = namedtuple("MoveItem", ["permutation", "orientation"])
-CubeStateBase = namedtuple("CubeState",["blockSequence","orienSequence"])
+CubeStateBase = namedtuple("CubeState", ["blockSequence", "orienSequence"])
+
+
 class MoveItem(MoveItemBase):
-    def __new__(cls, permutation:np.ndarray,orientation:np.ndarray,copy=True):
+    def __new__(cls, permutation: np.ndarray, orientation: np.ndarray, copy=True):
         if copy:
-            return super(MoveItem, cls).__new__(cls,permutation=permutation.copy(),orientation=orientation.copy())
+            return super(MoveItem, cls).__new__(cls, permutation=permutation.copy(), orientation=orientation.copy())
         else:
             return super(MoveItem, cls).__new__(cls, permutation=permutation, orientation=orientation)
+
     def __eq__(self, other):
-        return (self[0]==other[0]).all() and (self[1]==other[1]).all()
+        if other is not None:
+            return (self[0] == other[0]).all() and (self[1] == other[1]).all()
+        else:
+            return False
+
 
 class CubeState(CubeStateBase):
 
-    def __new__(cls, *args, blockSequence:np.ndarray=None,orienSequence:np.ndarray=None,copy=True,**kwargs):
-        if len(args)==1 and (type(args[0])==list or type(args[0])==tuple):
+    def __new__(cls, *args, blockSequence: np.ndarray = None, orienSequence: np.ndarray = None, copy=True, **kwargs):
+        if len(args) == 1 and (type(args[0]) == list or type(args[0]) == tuple):
             if copy:
-                return super(CubeState,cls).__new__(cls,blockSequence=args[0][0].copy(),orienSequence=args[0][1].copy())
+                return super(CubeState, cls).__new__(cls, blockSequence=args[0][0].copy(),
+                                                     orienSequence=args[0][1].copy())
             else:
                 return super(CubeState, cls).__new__(cls, blockSequence=args[0][0],
                                                      orienSequence=args[0][1])
         else:
             if copy:
-                return super(CubeState,cls).__new__(cls,blockSequence=blockSequence.copy(),orienSequence=orienSequence.copy())
+                return super(CubeState, cls).__new__(cls, blockSequence=blockSequence.copy(),
+                                                     orienSequence=orienSequence.copy())
             else:
                 return super(CubeState, cls).__new__(cls, blockSequence=blockSequence,
                                                      orienSequence=orienSequence)
+
     def __eq__(self, other):
-        return (self[0]==other[0]).all() and (self[1]==other[1]).all()
+        if other is not None:
+            return (self[0] == other[0]).all() and (self[1] == other[1]).all()
+        else:
+            return False
+
+    def __copy__(self):
+        return CubeState(blockSequence=self.blockSequence, orienSequence=self.orienSequence)
+
 
 def rankPermutation(p: np.ndarray):
-    p=p.copy()
+    p = p.copy()
     pM1 = p.argsort()
     rankResult = 0
     for index in range(p.shape[0] - 1, 0, -1):
@@ -55,8 +72,8 @@ def unrankPermutation(r: int, n: int) -> np.ndarray:
     return p
 
 
-def encodeCube(cube:CubeState) -> int:
-    pie,q=cube
+def encodeCube(cube: CubeState) -> int:
+    pie, q = cube
     perNum = rankPermutation(pie)
     return int(perNum * np.power(3, 6) + np.sum(q[:6] * np.array([np.power(3, i) for i in range(5, -1, -1)])))
 
@@ -73,10 +90,8 @@ def decodeCube(cubeNum: int) -> CubeState:
     # (a * b) % p = (a % p * b % p) % p
     # sum(orientation)=k
     # (3-k%3)%3=(3%3-k%3)%3=(-k%3)%3=(-1%3*k%3)%3=(2*k%3)%3
-    orientation.append((2*(sum(orientation) % 3)) % 3)
-    return CubeState([permutation,np.array(orientation,dtype=int)],copy=False)
-
-
+    orientation.append((2 * (sum(orientation) % 3)) % 3)
+    return CubeState([permutation, np.array(orientation, dtype=int)], copy=False)
 
 
 moveTable = {
@@ -94,7 +109,8 @@ moveTable = {
     "F'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
 }
 
-def move(cube:CubeState,movement:MoveItem)->[np.ndarray,np.ndarray]:
-    newPermutation=cube.blockSequence[movement.permutation]
-    newOrientation=np.mod((cube.orienSequence[movement.permutation]+movement.orientation),3)
-    return CubeState([newPermutation,newOrientation],copy=False)
+
+def move(cube: CubeState, movement: MoveItem) -> [np.ndarray, np.ndarray]:
+    newPermutation = cube.blockSequence[movement.permutation]
+    newOrientation = np.mod((cube.orienSequence[movement.permutation] + movement.orientation), 3)
+    return CubeState([newPermutation, newOrientation], copy=False)

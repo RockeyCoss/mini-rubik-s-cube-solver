@@ -8,6 +8,7 @@ vp.scene.width = 700
 vp.scene.height = 700
 positionBlock = {}
 moveButtonList=[]
+cube = utility.CubeState([np.arange(7), np.zeros(7, dtype=int)])
 faces = {
     'red': (vp.color.red, (1, 0, 0)),
     'blue': (vp.color.blue, (0, 0, 1)),
@@ -179,7 +180,7 @@ def solveByGraphButton(b):
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
 
     # solve
-    currentCube = cube.copy()
+    currentCube = cube.__copy__()
     solveSteps = GraphSolver.solve(currentCube)
     for step in solveSteps:
         rotateCubeAnimation(step)
@@ -189,7 +190,7 @@ def solveByGraphButton(b):
 
 
 if __name__ == '__main__':
-    cube = [np.arange(7), np.zeros(7, dtype=int)]
+
     squares = []
     for color, normalVector in faces.values():
         for x in (-0.5, 0.5):
