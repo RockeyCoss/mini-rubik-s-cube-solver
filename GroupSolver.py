@@ -50,9 +50,8 @@ def phaseOneH(currentCube: CubeState) -> float:
 
 # Phase two utility functions
 def phaseTwoH(currentCube: CubeState) -> float:
-    # h(n)=max(blocks' 3D manhattan distance, orientation recovery distance)
     permutation, orientation = currentCube
-    blockDis = np.sum(manhattanDistance[permutation, np.arange(6)]) / 4
+    blockDis = np.sum(manhattanDistance[permutation, np.arange(7)]) / 4
     return blockDis
 
 
@@ -80,13 +79,17 @@ def solve(cube: CubeState,phaseOneNum=1) -> List[str]:
             break
     if (movementLog == []):
         raise Exception("can't solve the rubik's cube")
-
+    print(movementLog,phaseOneCube)
     # phase two
     # from <U,R2,F2> to <I>
     if isCompletelySolved(phaseOneCube):
         return movementLog
     for maxDepth in range(1, 20):
-        pass
+        solved,phaseTwoCube = phaseTwoDps(maxDepth,0,cube,movementLog,0)
+    if solved:
+        return movementLog
+    else:
+        raise Exception("can't solve the rubik's cube")
 
 
 def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
@@ -115,7 +118,6 @@ def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
         if choseTime == 3:
             continue
         newCube = move(cube, movement)
-        # achieved!
 
         if currentDepth + phaseOneH(newCube) > maxDepth:
             continue
@@ -133,7 +135,7 @@ def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
 
 def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
     bool, CubeState]:
-    global moveTable, oppositeOperation
+    global moveTablePhaseTwo, oppositeOperation
 
     if isCompletelySolved(cube):
         return True, cube
@@ -158,13 +160,13 @@ def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
         if choseTime == 3:
             continue
         newCube = move(cube, movement)
-        # achieved!
 
-        if currentDepth + phaseOneH(newCube) > maxDepth:
+        heuristicDis=currentDepth + phaseTwoH(newCube)
+        if heuristicDis > maxDepth:
             continue
 
         movementLog.append(movementName)
-        judge, newCube = phaseOneDps(maxDepth, currentDepth + deltaDepth, newCube, movementLog, choseTime)
+        judge, newCube = phaseTwoDps(maxDepth, currentDepth + deltaDepth, newCube, movementLog, choseTime)
         if judge:
             return True, newCube
         else:
