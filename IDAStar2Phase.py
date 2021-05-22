@@ -21,14 +21,14 @@ oppositeOperation = {
     "R'": "R",
     "F": "F'",
     "F'": "F",
-    "R2":"R2",
-    "F2":"F2"
+    "R2": "R2",
+    "F2": "F2"
 }
-insertMapping={
-    "U":["U"],
-    "U'":["U'"],
-    "R2":['R','R'],
-    "F2":['F','F']
+insertMapping = {
+    "U": ["U"],
+    "U'": ["U'"],
+    "R2": ['R', 'R'],
+    "F2": ['F', 'F']
 }
 moveTablePhaseTwo = {
     # U
@@ -65,44 +65,45 @@ def isCompletelySolved(currentCube: CubeState) -> bool:
     global solvedState
     return currentCube == solvedState
 
+
 @infoPrint("二阶段IDA*算法")
-def solve(cube: CubeState,phaseOneNum=1) -> List[str]:
+def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
     if isCompletelySolved(cube):
         return []
 
     # record the times of a movement being chose
-    choseTime = 0
     # phase one
     # from <R,U,F> to <U,R2,F2>
 
     # phaseOneSolutionNum=0
     # phaseOneSolution=[]
-
+    solved = False
     for maxDepth in range(1, 20):
         movementLog = []
         solved, phaseOneCube = phaseOneDps(maxDepth, 0, cube, movementLog, 0)
         if solved:
             break
-    if (movementLog == []):
+    if not solved:
         raise Exception("can't solve the rubik's cube")
-    phaseOneLength=len(movementLog)
+    phaseOneLength = len(movementLog)
 
     # phase two
     # from <U,R2,F2> to <I>
     if isCompletelySolved(phaseOneCube):
         return movementLog
     for maxDepth in range(1, 20):
-        solved,phaseTwoCube = phaseTwoDps(maxDepth,0,phaseOneCube,movementLog,0)
+        solved, phaseTwoCube = phaseTwoDps(maxDepth, 0, phaseOneCube, movementLog, 0)
         if solved:
             # R R2->R'
-            if len(movementLog)>phaseOneLength:
-                if ((movementLog[phaseOneLength-1]=="R" or movementLog[phaseOneLength-1]=="R'") and\
-                    movementLog[phaseOneLength]=="R") or ((movementLog[phaseOneLength-1]=="F" or movementLog[phaseOneLength-1]=="F'") and \
+            if len(movementLog) > phaseOneLength:
+                if ((movementLog[phaseOneLength - 1] == "R" or movementLog[phaseOneLength - 1] == "R'") and \
+                    movementLog[phaseOneLength] == "R") or (
+                        (movementLog[phaseOneLength - 1] == "F" or movementLog[phaseOneLength - 1] == "F'") and \
                         movementLog[phaseOneLength] == "F"):
-                    movementLog.pop(phaseOneLength+1)
+                    movementLog.pop(phaseOneLength + 1)
                     movementLog.pop(phaseOneLength)
-                    phaseOneLastMovement=movementLog.pop(phaseOneLength-1)
-                    movementLog.insert(phaseOneLength-1,oppositeOperation[phaseOneLastMovement])
+                    phaseOneLastMovement = movementLog.pop(phaseOneLength - 1)
+                    movementLog.insert(phaseOneLength - 1, oppositeOperation[phaseOneLastMovement])
             return movementLog
     else:
         raise Exception("can't solve the rubik's cube")
@@ -163,7 +164,7 @@ def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
 
     length = len(movementLog)
     for movementName in moveTablePhaseTwo:
-        deltaDepth=1 if movementName=='U' or movementName=="U'" else 2
+        deltaDepth = 1 if movementName == 'U' or movementName == "U'" else 2
         movement = moveTablePhaseTwo[movementName]
         # R R', prune
         if movementName == preChoiceOpposite:
@@ -177,7 +178,7 @@ def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
             continue
         newCube = move(cube, movement)
 
-        heuristicDis=currentDepth + phaseTwoH(newCube)
+        heuristicDis = currentDepth + phaseTwoH(newCube)
         if heuristicDis > maxDepth:
             continue
 
@@ -187,7 +188,7 @@ def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
             return True, newCube
         else:
             movementLog.pop()
-            if movementName=='R2' or movementName=='F2':
+            if movementName == 'R2' or movementName == 'F2':
                 movementLog.pop()
             continue
 

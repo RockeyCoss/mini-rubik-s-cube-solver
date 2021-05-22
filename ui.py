@@ -42,7 +42,15 @@ moveTable = {
     "L'": MoveItem(permutation=np.array([1, 5, 2, 3, 0, 4, 6]), orientation=np.array([1, 2, 0, 0, 2, 1, 0])),
     "B": MoveItem(permutation=np.array([0, 5, 1, 3, 4, 6, 2]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
     "B'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
+}
 
+oppositeOperation = {
+    'U': "U",
+    "U'": "U",
+    "R": "R'",
+    "R'": "R",
+    "F": "F'",
+    "F'": "F",
 }
 
 def disableButton(func):
@@ -55,6 +63,13 @@ def disableButton(func):
         return result
     return wrapFunc
 
+def saveStepSequence(func):
+    def wrapFunc(*args,**kwargs):
+        solveSteps=func(*args,**kwargs)
+        global solveStepSequence
+        solveStepSequence = solveSteps
+        return solveSteps
+    return wrapFunc
 
 def updateCubeState(axis, angle):
     global cube, positionBlock, moveTable
@@ -105,6 +120,7 @@ def updateCubeState(axis, angle):
 
 def rotateAnimationFactory(operation, fps=24):
     @disableButton
+    @saveStepSequence
     def rotateAnimation(b):
         global cube, squares, operations, moveButtonList
         angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
@@ -190,6 +206,7 @@ def regularizeRubiksCube():
                     square.rotate(angle=angleFrame, axis=axis, origin=origin)
 
 @disableButton
+@saveStepSequence
 def solveByGraphButton(b):
     global cube, positionBlock, squares, moveButtonList
 
@@ -198,14 +215,14 @@ def solveByGraphButton(b):
     currentCube = cube.__copy__()
     solveSteps = GraphSolver.solve(currentCube)
 
-    global solveStepSequence
-    solveStepSequence = solveSteps
-
     for step in solveSteps:
         rotateCubeAnimation(step)
 
+    return solveSteps
+
 
 @disableButton
+@saveStepSequence
 def solveByIDAStar2PhaseButton(b):
     global cube, positionBlock, squares, moveButtonList
     regularizeRubiksCube()
@@ -213,14 +230,14 @@ def solveByIDAStar2PhaseButton(b):
     currentCube = cube.__copy__()
     solveSteps = IDAStar2Phase.solve(currentCube)
 
-    global solveStepSequence
-    solveStepSequence=solveSteps
-
     for step in solveSteps:
         rotateCubeAnimation(step)
 
+    return solveSteps
+
 
 @disableButton
+@saveStepSequence
 def solveByIDAStarButton(b):
     global cube, positionBlock, squares, moveButtonList
     regularizeRubiksCube()
@@ -228,16 +245,15 @@ def solveByIDAStarButton(b):
     currentCube = cube.__copy__()
     solveSteps = IDAStarSolver.solve(currentCube)
 
-    global solveStepSequence
-    solveStepSequence = solveSteps
-
     for step in solveSteps:
         rotateCubeAnimation(step)
+    return solveSteps
 
 @disableButton
 def rewindToPostSolve(b):
     global solveStepSequence
-    for step in reversed(solveStepSequence):
+    reverseStep=[oppositeOperation[step] for step in reversed(solveStepSequence)]
+    for step in reverseStep:
         rotateCubeAnimation(step,fps=10)
 
 

@@ -119,10 +119,10 @@ def move(cube: CubeState, movement: MoveItem) -> [np.ndarray, np.ndarray]:
 def infoPrint(prompt:str):
     def infoPrint(func):
         def wrapFunc(*args,**kwargs):
-            start=time.time()
+            start=time.clock()
             result=func(*args,**kwargs)
-            end=time.time()
-            vp.scene.append_to_caption(f"time consumed:{end-start:.5f} ")
+            end=time.clock()
+            vp.scene.append_to_caption(f"time consumed:{end-start:.5f}s ")
             vp.scene.append_to_caption(prompt+":")
             for step in result:
                 vp.scene.append_to_caption(step+" ")
