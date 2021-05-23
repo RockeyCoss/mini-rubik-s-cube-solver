@@ -1,6 +1,7 @@
 import numpy as np
 from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint
 from typing import List, Tuple
+
 # utility
 # use IDA*
 # f(n)=g(n)+h(n)
@@ -41,24 +42,34 @@ moveTablePhaseTwo = {
     "F2": MoveItem(permutation=np.array([0, 6, 5, 3, 4, 2, 1]), orientation=np.array([0, 0, 0, 0, 0, 0, 0])),
 }
 solvedState = CubeState([np.arange(7), np.zeros(7, dtype=int)])
+continueFlag = True
+
+
+def setContinueFlagFalse(*args, **kwargs):
+    global continueFlag
+    continueFlag = False
+
 
 class NotifyList(list):
-    def __init__(self,maxNum):
-        self.maxNum=maxNum
-        self.callBacks=[]
+    def __init__(self, maxNum):
+        self.maxNum = maxNum
+        self.callBacks = []
 
-    def addCallBack(self,func):
+    def addCallBack(self, func):
         self.callBacks.append(func)
 
-    def removeCallBack(self,func):
+    def removeCallBack(self, func):
         self.callBacks.remove(func)
 
     def append(self, __object) -> None:
-        super(NotifyList,self).append(__object)
-        if len(self)>=self.maxNum:
+        super(NotifyList, self).append(__object)
+        if len(self) >= self.maxNum:
             for func in self.callBacks:
                 func(self)
 
+    def forceCallBackCall(self):
+        for func in self.callBacks:
+            func(self)
 
 
 # Phase one utility functions
@@ -68,7 +79,7 @@ def isPhaseOneAchieved(currentCube: CubeState) -> bool:
 
 def phaseOneH(currentCube: CubeState) -> float:
     _, orientation = currentCube
-    orienDis = np.sum(orientation) / 4
+    orienDis = np.where(orientation > 0)[0].shape[0] / 4
     return orienDis
 
 
@@ -89,8 +100,9 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
     if isCompletelySolved(cube):
         return []
 
-    phaseOneSolutionList=NotifyList(phaseOneNum)
-
+    phaseOneSolutionList = NotifyList(phaseOneNum)
+    phaseOneSolutionList.addCallBack(setContinueFlagFalse)
+    cubeStateList = []
     # record the times of a movement being chose
     # phase one
     # from <R,U,F> to <U,R2,F2>
@@ -100,7 +112,7 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
     solved = False
     for maxDepth in range(1, 20):
         movementLog = []
-        solved, phaseOneCube = phaseOneDps(maxDepth, 0, cube, movementLog, 0)
+        phaseOneDps(maxDepth, 0, cube, movementLog, 0)
         if solved:
             break
     if not solved:
@@ -129,15 +141,20 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
         raise Exception("can't solve the rubik's cube")
 
 
-def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
-    bool, CubeState]:
-    global moveTable, oppositeOperation
+def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int,
+                phaseOneSolutionList: NotifyList, cubeStateList: List[CubeState]) -> None:
+    global moveTable, oppositeOperation, continueFlag
+    if not continueFlag:
+        return
 
     if isPhaseOneAchieved(cube):
-        return True, cube
+        phaseOneSolutionList.append([])
+        cubeStateList.append(cube.__copy__())
+        phaseOneSolutionList.forceCallBackCall()
+        return
     # exceed max depth, prune
     if currentDepth >= maxDepth:
-        return False, cube
+        return
 
     preChoiceOpposite = oppositeOperation[movementLog[-1]] if len(movementLog) > 0 else None
 
@@ -160,15 +177,14 @@ def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
             continue
 
         movementLog.append(movementName)
-        judge, newCube = phaseOneDps(maxDepth, currentDepth + 1, newCube, movementLog, choseTime)
-        if judge:
-            return True, newCube
+        phaseOneDps(maxDepth, currentDepth + 1, newCube, movementLog, choseTime)
+        if not continueFlag:
+            return
         else:
             movementLog.pop()
             continue
 
-    return False, cube
-
+    return
 
 def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
     bool, CubeState]:
