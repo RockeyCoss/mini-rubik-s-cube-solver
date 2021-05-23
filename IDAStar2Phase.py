@@ -112,7 +112,7 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
     solved = False
     for maxDepth in range(1, 20):
         movementLog = []
-        phaseOneDps(maxDepth, 0, cube, movementLog, 0)
+        phaseOneDps(maxDepth, 0, cube, movementLog, 0,phaseOneSolutionList,cubeStateList)
         if solved:
             break
     if not solved:
@@ -121,24 +121,29 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
 
     # phase two
     # from <U,R2,F2> to <I>
-    if isCompletelySolved(phaseOneCube):
-        return movementLog
-    for maxDepth in range(1, 20):
-        solved, phaseTwoCube = phaseTwoDps(maxDepth, 0, phaseOneCube, movementLog, 0)
-        if solved:
-            # R R2->R'
-            if len(movementLog) > phaseOneLength:
-                if ((movementLog[phaseOneLength - 1] == "R" or movementLog[phaseOneLength - 1] == "R'") and \
-                    movementLog[phaseOneLength] == "R") or (
-                        (movementLog[phaseOneLength - 1] == "F" or movementLog[phaseOneLength - 1] == "F'") and \
-                        movementLog[phaseOneLength] == "F"):
-                    movementLog.pop(phaseOneLength + 1)
-                    movementLog.pop(phaseOneLength)
-                    phaseOneLastMovement = movementLog.pop(phaseOneLength - 1)
-                    movementLog.insert(phaseOneLength - 1, oppositeOperation[phaseOneLastMovement])
+    solutionStepList=[]
+    for movementLog,phaseOneCube in zip(phaseOneSolutionList,cubeStateList):
+        if isCompletelySolved(phaseOneCube):
             return movementLog
-    else:
-        raise Exception("can't solve the rubik's cube")
+        for maxDepth in range(1, 20):
+            solved, phaseTwoCube = phaseTwoDps(maxDepth, 0, phaseOneCube, movementLog, 0)
+            if solved:
+                # R R2->R'
+                if len(movementLog) > phaseOneLength:
+                    if ((movementLog[phaseOneLength - 1] == "R" or movementLog[phaseOneLength - 1] == "R'") and \
+                        movementLog[phaseOneLength] == "R") or (
+                            (movementLog[phaseOneLength - 1] == "F" or movementLog[phaseOneLength - 1] == "F'") and \
+                            movementLog[phaseOneLength] == "F"):
+                        movementLog.pop(phaseOneLength + 1)
+                        movementLog.pop(phaseOneLength)
+                        phaseOneLastMovement = movementLog.pop(phaseOneLength - 1)
+                        movementLog.insert(phaseOneLength - 1, oppositeOperation[phaseOneLastMovement])
+                solutionStepList.append(movementLog)
+        if not solutionStepList:
+            raise Exception("can't solve the rubik's cube")
+        solutionLengths=[len(stepsLog) for stepsLog in solutionStepList]
+        shortestIndex=solutionLengths.index(min(solutionLengths))
+        return solutionStepList[shortestIndex]
 
 
 def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int,
@@ -148,9 +153,10 @@ def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
         return
 
     if isPhaseOneAchieved(cube):
-        phaseOneSolutionList.append([])
+        phaseOneSolutionList.append(movementLog.copy())
         cubeStateList.append(cube.__copy__())
-        phaseOneSolutionList.forceCallBackCall()
+        if not movementLog:
+            phaseOneSolutionList.forceCallBackCall()
         return
     # exceed max depth, prune
     if currentDepth >= maxDepth:
@@ -182,9 +188,9 @@ def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: 
             return
         else:
             movementLog.pop()
-            continue
 
     return
+
 
 def phaseTwoDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int) -> Tuple[
     bool, CubeState]:
