@@ -21,23 +21,25 @@ oppositeOperation = {
     "R'": "R",
     "F": "F'",
     "F'": "F",
-    "R2":"R2",
-    "F2":"F2"
+    "R2": "R2",
+    "F2": "F2"
 }
 
 solvedState = CubeState([np.arange(7), np.zeros(7, dtype=int)])
+
 
 # Phase two utility functions
 def heuristicH(currentCube: CubeState) -> float:
     permutation, orientation = currentCube
     blockDis = np.sum(manhattanDistance[permutation, np.arange(7)]) / 4
-    orienDis = np.sum(orientation) / 4
-    return max(orienDis,blockDis)
+    orienDis = np.where(orientation > 0)[0].shape[0] / 4
+    return max(orienDis, blockDis)
 
 
 def isCompletelySolved(currentCube: CubeState) -> bool:
     global solvedState
     return currentCube == solvedState
+
 
 @infoPrint("IDA*算法")
 def solve(cube: CubeState) -> List[str]:
@@ -46,7 +48,7 @@ def solve(cube: CubeState) -> List[str]:
 
     for maxDepth in range(1, 20):
         movementLog = []
-        solved = dps(maxDepth,0,cube,movementLog,0)
+        solved = dps(maxDepth, 0, cube, movementLog, 0)
         if solved:
             return movementLog
     else:
@@ -83,7 +85,7 @@ def dps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str
             continue
 
         movementLog.append(movementName)
-        judge= dps(maxDepth, currentDepth + 1, newCube, movementLog, choseTime)
+        judge = dps(maxDepth, currentDepth + 1, newCube, movementLog, choseTime)
         if judge:
             return True
         else:
@@ -91,4 +93,3 @@ def dps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str
             continue
 
     return False
-

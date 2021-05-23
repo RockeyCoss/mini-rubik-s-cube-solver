@@ -1,7 +1,7 @@
 import numpy as np
 from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint
 from typing import List, Tuple
-
+# utility
 # use IDA*
 # f(n)=g(n)+h(n)
 manhattanDistance = np.array([
@@ -42,6 +42,24 @@ moveTablePhaseTwo = {
 }
 solvedState = CubeState([np.arange(7), np.zeros(7, dtype=int)])
 
+class NotifyList(list):
+    def __init__(self,maxNum):
+        self.maxNum=maxNum
+        self.callBacks=[]
+
+    def addCallBack(self,func):
+        self.callBacks.append(func)
+
+    def removeCallBack(self,func):
+        self.callBacks.remove(func)
+
+    def append(self, __object) -> None:
+        super(NotifyList,self).append(__object)
+        if len(self)>=self.maxNum:
+            for func in self.callBacks:
+                func(self)
+
+
 
 # Phase one utility functions
 def isPhaseOneAchieved(currentCube: CubeState) -> bool:
@@ -70,6 +88,8 @@ def isCompletelySolved(currentCube: CubeState) -> bool:
 def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
     if isCompletelySolved(cube):
         return []
+
+    phaseOneSolutionList=NotifyList(phaseOneNum)
 
     # record the times of a movement being chose
     # phase one
