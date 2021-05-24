@@ -6,6 +6,7 @@ from typing import List, Tuple
 # use IDA*
 # f(n)=g(n)+h(n)
 
+
 insertMapping = {
     "U": ["U"],
     "U'": ["U'"],
