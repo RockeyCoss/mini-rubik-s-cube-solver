@@ -3,14 +3,15 @@ import numpy as np
 
 import IDAStar2Phase
 import IDAStarSolver
-from utility import MoveItem
+from utility import MoveItem,oppositeOperation
 import utility
 import GraphSolver
 
 vp.scene.width = 700
 vp.scene.height = 700
+phaseOneNum=5
 positionBlock = {}
-moveButtonList = []
+widgetList = []
 solveStepSequence=[]
 cube = utility.CubeState([np.arange(7), np.zeros(7, dtype=int)])
 faces = {
@@ -44,21 +45,13 @@ moveTable = {
     "B'": MoveItem(permutation=np.array([0, 2, 6, 3, 4, 1, 5]), orientation=np.array([0, 1, 2, 0, 0, 2, 1])),
 }
 
-oppositeOperation = {
-    'U': "U",
-    "U'": "U",
-    "R": "R'",
-    "R'": "R",
-    "F": "F'",
-    "F'": "F",
-}
 
 def disableButton(func):
     def wrapFunc(*args,**kwargs):
-        for button in moveButtonList:
+        for button in widgetList:
             button.disabled = True
         result=func(*args,**kwargs)
-        for button in moveButtonList:
+        for button in widgetList:
             button.disabled = False
         return result
     return wrapFunc
@@ -122,7 +115,7 @@ def rotateAnimationFactory(operation, fps=24):
     @disableButton
     @saveStepSequence
     def rotateAnimation(b):
-        global cube, squares, operations, moveButtonList
+        global cube, squares, operations, widgetList
         angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
         axis = vp.vector(operations[operation])
         origin = vp.vector(0, 0, 0)
@@ -139,7 +132,7 @@ def rotateAnimationFactory(operation, fps=24):
 
 def rotateCubeAnimation(operation, fps=24):
     global cube, squares, operations
-    angle = vp.pi if '2' in operation else vp.pi / 2 if "'" in operation else -vp.pi / 2
+    angle = vp.pi / 2 if "'" in operation else -vp.pi / 2
     axis = vp.vector(operations[operation])
     origin = vp.vector(0, 0, 0)
     angleFrame = angle / fps
@@ -208,7 +201,7 @@ def regularizeRubiksCube():
 @disableButton
 @saveStepSequence
 def solveByGraphButton(b):
-    global cube, positionBlock, squares, moveButtonList
+    global cube, positionBlock, squares, widgetList
 
     regularizeRubiksCube()
     # solve
@@ -224,22 +217,29 @@ def solveByGraphButton(b):
 @disableButton
 @saveStepSequence
 def solveByIDAStar2PhaseButton(b):
-    global cube, positionBlock, squares, moveButtonList
+    global cube, positionBlock, squares, widgetList,phaseOneNum
     regularizeRubiksCube()
     # solve
     currentCube = cube.__copy__()
-    solveSteps = IDAStar2Phase.solve(currentCube)
+    try:
+        solveSteps = IDAStar2Phase.solve(currentCube,phaseOneNum)
 
-    for step in solveSteps:
-        rotateCubeAnimation(step)
-
+        for step in solveSteps:
+            rotateCubeAnimation(step)
+    except Exception:
+        vp.scene.append_to_caption("can't solve this cube\n")
+        solveSteps=[]
     return solveSteps
 
+@disableButton
+def setPhaseOneNum(m):
+    global phaseOneNum
+    phaseOneNum=int(m.selected)
 
 @disableButton
 @saveStepSequence
 def solveByIDAStarButton(b):
-    global cube, positionBlock, squares, moveButtonList
+    global cube, positionBlock, squares, widgetList
     regularizeRubiksCube()
     # solve
     currentCube = cube.__copy__()
@@ -280,25 +280,31 @@ if __name__ == '__main__':
         fps = 24
         button = vp.button(text=f" {operation} ", pos=vp.scene.caption_anchor,
                            bind=rotateAnimationFactory(operation, fps))
-        moveButtonList.append(button)
+        widgetList.append(button)
         vp.scene.append_to_caption("   ")
 
     vp.scene.append_to_caption("\n\n")
+
+    vp.scene.append_to_caption("            ")
+    button = vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
+    widgetList.append(button)
+    vp.scene.append_to_caption("\n\n")
     vp.scene.append_to_caption("            ")
 
-    button = vp.button(text=f"状态图法求解", pos=vp.scene.caption_anchor, bind=solveByGraphButton)
-    moveButtonList.append(button)
-
-    vp.scene.append_to_caption("     ")
     button = vp.button(text=f"IDA*2阶段算法求解", pos=vp.scene.caption_anchor, bind=solveByIDAStar2PhaseButton)
-    moveButtonList.append(button)
+    widgetList.append(button)
+    vp.scene.append_to_caption("阶段一次数：")
+    menu=vp.menu(choices=[str(i) for i in range(5,16)],index=0,bind=setPhaseOneNum)
+    widgetList.append(menu)
 
-    vp.scene.append_to_caption("     ")
+    vp.scene.append_to_caption("\n\n")
+    vp.scene.append_to_caption("            ")
     button = vp.button(text=f"IDA*算法求解", pos=vp.scene.caption_anchor, bind=solveByIDAStarButton)
-    moveButtonList.append(button)
+    widgetList.append(button)
 
-    vp.scene.append_to_caption("     ")
+    vp.scene.append_to_caption("\n\n")
+    vp.scene.append_to_caption("            ")
     button = vp.button(text=f"回到求解前状态", pos=vp.scene.caption_anchor, bind=rewindToPostSolve)
-    moveButtonList.append(button)
+    widgetList.append(button)
 
     vp.scene.append_to_caption("\n")

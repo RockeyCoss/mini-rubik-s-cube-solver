@@ -1,30 +1,11 @@
 import numpy as np
-from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint
+from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint,manhattanDistance,oppositeOperation
 from typing import List, Tuple
 
 # utility
 # use IDA*
 # f(n)=g(n)+h(n)
-manhattanDistance = np.array([
-    # 0  1  2  3  4  5  6
-    [0, 1, 2, 2, 1, 2, 3],
-    [1, 0, 1, 3, 2, 1, 2],
-    [2, 1, 0, 2, 3, 2, 1],
-    [2, 3, 2, 0, 1, 2, 1],
-    [1, 2, 3, 1, 0, 1, 2],
-    [2, 1, 2, 2, 1, 0, 1],
-    [3, 2, 1, 1, 2, 1, 0],
-])
-oppositeOperation = {
-    'U': "U",
-    "U'": "U",
-    "R": "R'",
-    "R'": "R",
-    "F": "F'",
-    "F'": "F",
-    "R2": "R2",
-    "F2": "F2"
-}
+
 insertMapping = {
     "U": ["U"],
     "U'": ["U'"],
@@ -77,16 +58,27 @@ def isPhaseOneAchieved(currentCube: CubeState) -> bool:
     return (currentCube.orienSequence == np.zeros(7)).all()
 
 
+# change heuristic function to alleviate the problem of getting stuck into the local minima.
 def phaseOneH(currentCube: CubeState) -> float:
-    _, orientation = currentCube
+    # _, orientation = currentCube
+    # orienDis = np.where(orientation > 0)[0].shape[0] / 4
+    # return orienDis
+    permutation, orientation = currentCube
+    blockDis = np.sum(manhattanDistance[permutation, np.arange(7)]) / 4
     orienDis = np.where(orientation > 0)[0].shape[0] / 4
-    return orienDis
+    heuristic=max(orienDis, blockDis)
+    if 0 < heuristic < 1:
+        heuristic=1
+    return heuristic
 
 
 # Phase two utility functions
+# aviod the appearce of 0.5, which will casus misjudge.
 def phaseTwoH(currentCube: CubeState) -> float:
     permutation, orientation = currentCube
     blockDis = np.sum(manhattanDistance[permutation, np.arange(7)]) / 4
+    if 0<blockDis<1:
+        blockDis=1
     return blockDis
 
 
@@ -97,6 +89,7 @@ def isCompletelySolved(currentCube: CubeState) -> bool:
 
 @infoPrint("二阶段IDA*算法")
 def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
+    global continueFlag
     if isCompletelySolved(cube):
         return []
 
@@ -112,19 +105,26 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
     for maxDepth in range(1, 20):
         movementLog = []
         phaseOneDps(maxDepth, 0, cube, movementLog, 0, phaseOneSolutionList, cubeStateList)
-        if phaseOneSolutionList:
+        if not continueFlag:
             break
     if not phaseOneSolutionList:
         raise Exception("can't solve the rubik's cube")
 
+    heuristicDisList=[phaseTwoH(cube) for cube in cubeStateList]
+    phaseOneResults=list(zip(phaseOneSolutionList,cubeStateList,heuristicDisList))
+    phaseOneResults=sorted(phaseOneResults,key=lambda item:item[2])
+    minHeuristicDis=phaseOneResults[0][2]
     # phase two
     # from <U,R2,F2> to <I>
     solutionStepList = []
-    for movementLog, phaseOneCube in zip(phaseOneSolutionList, cubeStateList):
+    for movementLog, phaseOneCube,heuristicDis in phaseOneResults:
+        if heuristicDis>minHeuristicDis and solutionStepList:
+            break
         phaseOneLength = len(movementLog)
         if isCompletelySolved(phaseOneCube):
-            return movementLog
-        for maxDepth in range(1, 20):
+            solutionStepList.append(movementLog)
+            continue
+        for maxDepth in range(1, 15):
             solved, phaseTwoCube = phaseTwoDps(maxDepth, 0, phaseOneCube, movementLog, 0)
             if solved:
                 # R R2->R'
@@ -137,12 +137,14 @@ def solve(cube: CubeState, phaseOneNum=1) -> List[str]:
                         movementLog.pop(phaseOneLength)
                         phaseOneLastMovement = movementLog.pop(phaseOneLength - 1)
                         movementLog.insert(phaseOneLength - 1, oppositeOperation[phaseOneLastMovement])
-                solutionStepList.append(movementLog)
-        if not solutionStepList:
-            raise Exception("can't solve the rubik's cube")
-        solutionLengths = [len(stepsLog) for stepsLog in solutionStepList]
-        shortestIndex = solutionLengths.index(min(solutionLengths))
-        return solutionStepList[shortestIndex]
+                solutionStepList.append(movementLog.copy())
+                break
+    if not solutionStepList:
+        raise Exception("can't solve the rubik's cube")
+    solutionLengths = [len(stepsLog) for stepsLog in solutionStepList]
+    shortestIndex = solutionLengths.index(min(solutionLengths))
+    continueFlag=True
+    return solutionStepList[shortestIndex]
 
 
 def phaseOneDps(maxDepth: int, currentDepth: int, cube: CubeState, movementLog: List[str], choseTime: int,

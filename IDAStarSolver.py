@@ -1,29 +1,10 @@
 import numpy as np
-from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint
+from utility import decodeCube, encodeCube, moveTable, move, MoveItem, CubeState, infoPrint, manhattanDistance,oppositeOperation
 from typing import List, Tuple
 
 # use IDA*
 # f(n)=g(n)+h(n)
-manhattanDistance = np.array([
-    # 0  1  2  3  4  5  6
-    [0, 1, 2, 2, 1, 2, 3],
-    [1, 0, 1, 3, 2, 1, 2],
-    [2, 1, 0, 2, 3, 2, 1],
-    [2, 3, 2, 0, 1, 2, 1],
-    [1, 2, 3, 1, 0, 1, 2],
-    [2, 1, 2, 2, 1, 0, 1],
-    [3, 2, 1, 1, 2, 1, 0],
-])
-oppositeOperation = {
-    'U': "U",
-    "U'": "U",
-    "R": "R'",
-    "R'": "R",
-    "F": "F'",
-    "F'": "F",
-    "R2": "R2",
-    "F2": "F2"
-}
+
 
 solvedState = CubeState([np.arange(7), np.zeros(7, dtype=int)])
 
@@ -33,7 +14,10 @@ def heuristicH(currentCube: CubeState) -> float:
     permutation, orientation = currentCube
     blockDis = np.sum(manhattanDistance[permutation, np.arange(7)]) / 4
     orienDis = np.where(orientation > 0)[0].shape[0] / 4
-    return max(orienDis, blockDis)
+    heuristic = max(orienDis, blockDis)
+    if 0 < heuristic < 1:
+        heuristic = 1
+    return heuristic
 
 
 def isCompletelySolved(currentCube: CubeState) -> bool:

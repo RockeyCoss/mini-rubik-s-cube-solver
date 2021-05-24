@@ -6,6 +6,26 @@ import time
 
 MoveItemBase = namedtuple("MoveItem", ["permutation", "orientation"])
 CubeStateBase = namedtuple("CubeState", ["blockSequence", "orienSequence"])
+manhattanDistance = np.array([
+    # 0  1  2  3  4  5  6
+    [0, 1, 2, 2, 1, 2, 3],
+    [1, 0, 1, 3, 2, 1, 2],
+    [2, 1, 0, 2, 3, 2, 1],
+    [2, 3, 2, 0, 1, 2, 1],
+    [1, 2, 3, 1, 0, 1, 2],
+    [2, 1, 2, 2, 1, 0, 1],
+    [3, 2, 1, 1, 2, 1, 0],
+])
+oppositeOperation = {
+    'U': "U'",
+    "U'": "U",
+    "R": "R'",
+    "R'": "R",
+    "F": "F'",
+    "F'": "F",
+    "R2": "R2",
+    "F2": "F2"
+}
 
 
 class MoveItem(MoveItemBase):
